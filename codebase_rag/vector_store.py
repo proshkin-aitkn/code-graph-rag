@@ -24,9 +24,12 @@ if has_qdrant_client():
                 )
         return _CLIENT
 
+    _QDRANT_LOCK_WARNING_SHOWN = False
+
     def store_embedding(
         node_id: int, embedding: list[float], qualified_name: str
     ) -> None:
+        global _QDRANT_LOCK_WARNING_SHOWN
         try:
             client = get_qdrant_client()
             client.upsert(
@@ -43,9 +46,18 @@ if has_qdrant_client():
                 ],
             )
         except Exception as e:
-            logger.warning(
-                ls.EMBEDDING_STORE_FAILED.format(name=qualified_name, error=e)
-            )
+            err_str = str(e)
+            if "already accessed by another instance" in err_str:
+                if not _QDRANT_LOCK_WARNING_SHOWN:
+                    logger.warning(
+                        "Qdrant storage is locked by another process (likely the MCP server). "
+                        "Embedding storage will be skipped. Stop the MCP server to regenerate embeddings."
+                    )
+                    _QDRANT_LOCK_WARNING_SHOWN = True
+            else:
+                logger.warning(
+                    ls.EMBEDDING_STORE_FAILED.format(name=qualified_name, error=e)
+                )
 
     def search_embeddings(
         query_embedding: list[float], top_k: int | None = None
