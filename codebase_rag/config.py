@@ -238,6 +238,8 @@ class AppConfig(BaseSettings):
     )
 
     QDRANT_DB_PATH: str = "./.qdrant_code_embeddings"
+    QDRANT_HOST: str | None = None
+    QDRANT_PORT: int = 6333
     QDRANT_COLLECTION_NAME: str = "code_embeddings"
     QDRANT_VECTOR_DIM: int = 768
     QDRANT_TOP_K: int = 5
@@ -249,7 +251,7 @@ class AppConfig(BaseSettings):
     CACHE_EVICTION_DIVISOR: int = 10
     CACHE_MEMORY_THRESHOLD_RATIO: float = 0.8
 
-    PARALLEL_WORKERS: int = 4
+    PARALLEL_WORKERS: int = 16
 
     OLLAMA_HEALTH_TIMEOUT: float = 5.0
 

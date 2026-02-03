@@ -42,11 +42,15 @@ class MarkdownDocumentProcessor:
         relative_path = file_path.relative_to(self.repo_path)
         doc_path = str(relative_path)
 
+        path_parts = relative_path.with_suffix("").parts
+        doc_qualified_name = cs.SEPARATOR_DOT.join([self.project_name, *path_parts])
+
         title = self._extract_document_title(root_node, file_path)
 
         doc_props: PropertyDict = {
             cs.KEY_PATH: doc_path,
             cs.KEY_NAME: file_path.name,
+            cs.KEY_QUALIFIED_NAME: doc_qualified_name,
             "title": title,
         }
 

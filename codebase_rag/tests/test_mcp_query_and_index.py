@@ -210,7 +210,11 @@ class TestIndexRepository:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test successful repository indexing."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -226,7 +230,11 @@ class TestIndexRepository:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test that GraphUpdater is created with correct parameters."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -244,7 +252,11 @@ class TestIndexRepository:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test error handling during repository indexing."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.side_effect = Exception("Indexing failed")
             mock_updater_class.return_value = mock_updater
@@ -264,7 +276,11 @@ class TestIndexRepository:
             cypher_gen=MagicMock(),
         )
 
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -277,7 +293,11 @@ class TestIndexRepository:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test indexing repository multiple times (re-indexing)."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -294,7 +314,11 @@ class TestIndexRepository:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test that project data is cleared before indexing."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -319,7 +343,11 @@ class TestIndexRepository:
 
         mcp_registry.ingestor.delete_project = MagicMock(side_effect=mock_delete)  # type: ignore[method-assign]
 
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run = MagicMock(side_effect=mock_run)
             mock_updater_class.return_value = mock_updater
@@ -350,7 +378,11 @@ class TestIndexRepository:
             cypher_gen=mock_cypher,
         )
 
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -371,7 +403,11 @@ class TestQueryAndIndexIntegration:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test querying after indexing."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater
@@ -394,7 +430,11 @@ class TestQueryAndIndexIntegration:
         self, mcp_registry: MCPToolsRegistry, temp_project_root: Path
     ) -> None:
         """Test typical workflow: index then query."""
-        with patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class:
+        with (
+            patch("codebase_rag.mcp.tools.settings") as mock_settings,
+            patch("codebase_rag.mcp.tools.GraphUpdater") as mock_updater_class,
+        ):
+            mock_settings.PARALLEL_WORKERS = 1
             mock_updater = MagicMock()
             mock_updater.run.return_value = None
             mock_updater_class.return_value = mock_updater

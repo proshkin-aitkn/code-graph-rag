@@ -21,10 +21,12 @@ from .main import (
     style,
     update_model_settings,
 )
+from .parallel_indexer import run_parallel_indexing
 from .parser_loader import load_parsers
 from .services.protobuf_service import ProtobufFileIngestor
 from .tools.health_checker import HealthChecker
 from .tools.language import cli as language_cli
+from .utils.path_utils import should_skip_path
 
 app = typer.Typer(
     name="graph-code",
@@ -166,17 +168,58 @@ def start(
                 ingestor.clean_database()
             ingestor.ensure_constraints()
 
-            parsers, queries = load_parsers()
+            num_workers = settings.PARALLEL_WORKERS
+            if num_workers > 1:
+                _info(
+                    style(
+                        f"Using parallel indexing with {num_workers} workers",
+                        cs.Color.CYAN,
+                    )
+                )
 
-            updater = GraphUpdater(
-                ingestor,
-                repo_to_update,
-                parsers,
-                queries,
-                unignore_paths,
-                exclude_paths,
-            )
-            updater.run()
+                file_paths = [
+                    fp
+                    for fp in repo_to_update.rglob("*")
+                    if fp.is_file()
+                    and not should_skip_path(
+                        fp, repo_to_update, exclude_paths, unignore_paths
+                    )
+                ]
+
+                if file_paths:
+                    project_name = repo_to_update.resolve().name
+                    ingestor.ensure_node_batch(
+                        cs.NODE_PROJECT, {cs.KEY_NAME: project_name}
+                    )
+                    ingestor.flush_all()
+
+                    processed = run_parallel_indexing(
+                        file_paths=file_paths,
+                        repo_path=repo_to_update,
+                        host=settings.MEMGRAPH_HOST,
+                        port=settings.MEMGRAPH_PORT,
+                        batch_size=effective_batch_size,
+                        num_workers=num_workers,
+                        generate_embeddings=True,
+                    )
+                    _info(
+                        style(
+                            f"Parallel indexing complete: {processed} files processed",
+                            cs.Color.GREEN,
+                        )
+                    )
+            else:
+                parsers, queries = load_parsers()
+
+                updater = GraphUpdater(
+                    ingestor,
+                    repo_to_update,
+                    parsers,
+                    queries,
+                    unignore_paths,
+                    exclude_paths,
+                )
+                updater.run()
 
             if output:
                 _info(style(cs.CLI_MSG_EXPORTING_TO.format(path=output), cs.Color.CYAN))
