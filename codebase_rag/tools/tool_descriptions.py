@@ -93,6 +93,11 @@ MCP_INDEX_REPOSITORY = (
     "Note: This preserves other projects - only the current project is re-indexed."
 )
 
+MCP_UPDATE_REPOSITORY = (
+    "Update the repository in the Memgraph knowledge graph without clearing existing data. "
+    "Use this for incremental updates instead of full re-indexing."
+)
+
 MCP_QUERY_CODE_GRAPH = (
     "Query the codebase knowledge graph using natural language. "
     "Ask questions like 'What functions call UserService.create_user?' or "
@@ -107,6 +112,12 @@ MCP_GET_CODE_SNIPPET = (
 MCP_SURGICAL_REPLACE_CODE = (
     "Surgically replace an exact code block in a file using diff-match-patch. "
     "Only modifies the exact target block, leaving the rest unchanged."
+)
+
+MCP_SEMANTIC_SEARCH = (
+    "Performs a semantic search for functions based on a natural language query "
+    "describing their purpose, returning a list of potential matches with similarity scores. "
+    "Requires the 'semantic' extra to be installed."
 )
 
 MCP_READ_FILE = (
@@ -130,6 +141,7 @@ MCP_PARAM_OFFSET = "Line number to start reading from (0-based, optional)"
 MCP_PARAM_LIMIT = "Maximum number of lines to read (optional)"
 MCP_PARAM_CONTENT = "Content to write to the file"
 MCP_PARAM_DIRECTORY_PATH = "Relative path to directory from project root (default: '.')"
+MCP_PARAM_TOP_K = "Max number of results to return (optional, default: 5)"
 
 
 MCP_TOOLS: dict[MCPToolName, str] = {
@@ -137,12 +149,14 @@ MCP_TOOLS: dict[MCPToolName, str] = {
     MCPToolName.DELETE_PROJECT: MCP_DELETE_PROJECT,
     MCPToolName.WIPE_DATABASE: MCP_WIPE_DATABASE,
     MCPToolName.INDEX_REPOSITORY: MCP_INDEX_REPOSITORY,
+    MCPToolName.UPDATE_REPOSITORY: MCP_UPDATE_REPOSITORY,
     MCPToolName.QUERY_CODE_GRAPH: MCP_QUERY_CODE_GRAPH,
     MCPToolName.GET_CODE_SNIPPET: MCP_GET_CODE_SNIPPET,
     MCPToolName.SURGICAL_REPLACE_CODE: MCP_SURGICAL_REPLACE_CODE,
     MCPToolName.READ_FILE: MCP_READ_FILE,
     MCPToolName.WRITE_FILE: MCP_WRITE_FILE,
     MCPToolName.LIST_DIRECTORY: MCP_LIST_DIRECTORY,
+    MCPToolName.SEMANTIC_SEARCH: MCP_SEMANTIC_SEARCH,
 }
 
 AGENTIC_TOOLS: dict[AgenticToolName, str] = {

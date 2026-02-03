@@ -426,7 +426,7 @@ CYPHER_DEFAULT_LIMIT = 50
 CYPHER_QUERY_EMBEDDINGS = """
 MATCH (m:Module)-[:DEFINES]->(n)
 WHERE (n:Function OR n:Method)
-  AND m.qualified_name STARTS WITH $project_name + '.'
+  AND m.qualified_name STARTS WITH $project_name
 RETURN id(n) AS node_id, n.qualified_name AS qualified_name,
        n.start_line AS start_line, n.end_line AS end_line,
        m.path AS path
@@ -2361,12 +2361,14 @@ class MCPToolName(StrEnum):
     DELETE_PROJECT = "delete_project"
     WIPE_DATABASE = "wipe_database"
     INDEX_REPOSITORY = "index_repository"
+    UPDATE_REPOSITORY = "update_repository"
     QUERY_CODE_GRAPH = "query_code_graph"
     GET_CODE_SNIPPET = "get_code_snippet"
     SURGICAL_REPLACE_CODE = "surgical_replace_code"
     READ_FILE = "read_file"
     WRITE_FILE = "write_file"
     LIST_DIRECTORY = "list_directory"
+    SEMANTIC_SEARCH = "semantic_search"
 
 
 # (H) MCP environment variables
@@ -2406,6 +2408,7 @@ class MCPParamName(StrEnum):
     LIMIT = "limit"
     CONTENT = "content"
     DIRECTORY_PATH = "directory_path"
+    TOP_K = "top_k"
 
 
 # (H) MCP server constants
@@ -2428,6 +2431,11 @@ MCP_PROJECT_DELETED = "Successfully deleted project '{project_name}'."
 MCP_WIPE_CANCELLED = "Database wipe cancelled. Set confirm=true to proceed."
 MCP_WIPE_SUCCESS = "Database completely wiped. All projects have been removed."
 MCP_WIPE_ERROR = "Error wiping database: {error}"
+MCP_UPDATE_SUCCESS = "Successfully updated repository at {path} (no database wipe)."
+MCP_UPDATE_ERROR = "Error updating repository: {error}"
+MCP_SEMANTIC_NOT_AVAILABLE_RESPONSE = (
+    "Semantic search is not available. Install with: uv sync --extra semantic"
+)
 
 # (H) MCP dict keys and values
 MCP_KEY_RESULTS = "results"
