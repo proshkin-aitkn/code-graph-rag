@@ -40,7 +40,9 @@ CYPHER_QUERY_RULES = """**2. Critical Cypher Query Rules**
 - **Use `STARTS WITH` for Paths**: When matching paths, always use `STARTS WITH` for robustness (e.g., `WHERE n.path STARTS WITH 'workflows/src'`). Do not use `=`.
 - **Use `ENDS WITH` for qualified_name**: The `qualified_name` property contains full paths like `'Project.folder.subfolder.ClassName'`. When users mention a class, function, or method by its short name (e.g., "VatManager"), use `ENDS WITH` to match: `WHERE c.qualified_name ENDS WITH '.VatManager'`. Do NOT use `{name: 'VatManager'}` equality matching.
 - **Use `toLower()` for Searches**: For case-insensitive searching on string properties, use `toLower()`.
-- **Querying Lists**: To check if a list property (like `decorators`) contains an item, use the `ANY` or `IN` clause (e.g., `WHERE 'flow' IN n.decorators`)."""
+- **Querying Lists**: To check if a list property (like `decorators`) contains an item, use the `ANY` or `IN` clause (e.g., `WHERE 'flow' IN n.decorators`).
+- **Multiple Labels**: Do NOT use Neo4j pipe syntax (e.g., `n:Function|Method`). Use WHERE clause instead: `MATCH (n) WHERE n:Function OR n:Method`.
+- **Parentheses for OR + AND**: ALWAYS wrap OR conditions in parentheses when combined with AND. Example: `WHERE (n:Function OR n:Method) AND n.name CONTAINS 'test'`. Without parentheses, AND binds tighter than OR, causing incorrect results."""
 
 
 def build_graph_schema_and_rules() -> str:
@@ -174,7 +176,15 @@ cypher// "What methods does UserService have?" or "Show me methods in UserServic
 {CYPHER_EXAMPLE_CLASS_METHODS}
 
 **4. Output Format**
-Provide only the Cypher query.
+CRITICAL: Output ONLY the raw Cypher query.
+- NO markdown (no ```)
+- NO code fences
+- NO explanations
+- NO preamble
+- Start DIRECTLY with MATCH, CREATE, MERGE, or RETURN
+
+Example output (notice no markdown, just raw query):
+MATCH (f:Function) WHERE f.name = 'main' RETURN f.name AS name LIMIT 10
 """
 
 # (H) Stricter prompt for less capable open-source/local models (e.g., Ollama)
