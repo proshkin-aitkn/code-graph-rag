@@ -6,10 +6,8 @@ from loguru import logger
 from codebase_rag import constants as cs
 from codebase_rag import logs as lg
 from codebase_rag import tool_errors as te
-from codebase_rag.config import settings
 from codebase_rag.graph_updater import GraphUpdater
 from codebase_rag.models import ToolMetadata
-from codebase_rag.parallel_indexer import run_parallel_indexing
 from codebase_rag.parser_loader import load_parsers
 from codebase_rag.services.graph_service import MemgraphIngestor
 from codebase_rag.services.llm import CypherGenerator
@@ -38,7 +36,6 @@ from codebase_rag.types_defs import (
     QueryResultDict,
 )
 from codebase_rag.utils.dependencies import has_semantic_dependencies
-from codebase_rag.utils.path_utils import should_skip_path
 
 
 class MCPToolsRegistry:
@@ -339,67 +336,22 @@ class MCPToolsRegistry:
             return cs.MCP_WIPE_ERROR.format(error=e)
 
     async def index_repository(self) -> str:
-        """Index repository synchronously with parallel workers."""
-        import time
-
-        start_time = time.time()
         logger.info(lg.MCP_INDEXING_REPO.format(path=self.project_root))
         project_name = Path(self.project_root).resolve().name
-        repo_path = Path(self.project_root)
-        processed = 0
-        total_files = 0
-        num_workers = settings.PARALLEL_WORKERS
-
         try:
             logger.info(lg.MCP_CLEARING_PROJECT.format(project_name=project_name))
             self.ingestor.delete_project(project_name)
 
-            from codebase_rag.vector_store import clear_project_vectors
+            updater = GraphUpdater(
+                ingestor=self.ingestor,
+                repo_path=Path(self.project_root),
+                parsers=self.parsers,
+                queries=self.queries,
+            )
+            updater.run()
 
-            cleared = clear_project_vectors(project_name)
-            if cleared:
-                logger.info(
-                    f"Cleared {cleared} old vectors for project '{project_name}'"
-                )
-
-            if num_workers > 1:
-                file_paths = [
-                    fp
-                    for fp in repo_path.rglob("*")
-                    if fp.is_file() and not should_skip_path(fp, repo_path)
-                ]
-                total_files = len(file_paths)
-
-                if file_paths:
-                    self.ingestor.ensure_node_batch(
-                        cs.NODE_PROJECT, {cs.KEY_NAME: project_name}
-                    )
-                    self.ingestor.flush_all()
-
-                    processed = run_parallel_indexing(
-                        file_paths=file_paths,
-                        repo_path=repo_path,
-                        host=settings.MEMGRAPH_HOST,
-                        port=settings.MEMGRAPH_PORT,
-                        batch_size=settings.MEMGRAPH_BATCH_SIZE,
-                        num_workers=num_workers,
-                        generate_embeddings=True,
-                    )
-            else:
-                updater = GraphUpdater(
-                    ingestor=self.ingestor,
-                    repo_path=repo_path,
-                    parsers=self.parsers,
-                    queries=self.queries,
-                )
-                updater.run()
-
-            elapsed = time.time() - start_time
-            return (
-                f"Indexed '{project_name}' at {self.project_root}\n"
-                f"  Files: {processed}/{total_files} processed\n"
-                f"  Workers: {num_workers}\n"
-                f"  Time: {elapsed:.1f}s"
+            return cs.MCP_INDEX_SUCCESS_PROJECT.format(
+                path=self.project_root, project_name=project_name
             )
         except Exception as e:
             logger.error(lg.MCP_ERROR_INDEXING.format(error=e))
@@ -407,62 +359,18 @@ class MCPToolsRegistry:
 
     async def update_repository(self) -> str:
         """Update repository without clearing existing data."""
-        import time
-
-        start_time = time.time()
         logger.info(lg.MCP_UPDATING_REPO.format(path=self.project_root))
-        repo_path = Path(self.project_root)
-        project_name = repo_path.resolve().name
-        processed = 0
-        total_files = 0
-        num_workers = 1
 
         try:
-            num_workers = settings.PARALLEL_WORKERS
-            if num_workers > 1:
-                logger.info(f"Using parallel update with {num_workers} workers")
-
-                file_paths = [
-                    fp
-                    for fp in repo_path.rglob("*")
-                    if fp.is_file() and not should_skip_path(fp, repo_path)
-                ]
-                total_files = len(file_paths)
-
-                if file_paths:
-                    self.ingestor.ensure_node_batch(
-                        cs.NODE_PROJECT, {cs.KEY_NAME: project_name}
-                    )
-                    self.ingestor.flush_all()
-
-                    processed = run_parallel_indexing(
-                        file_paths=file_paths,
-                        repo_path=repo_path,
-                        host=settings.MEMGRAPH_HOST,
-                        port=settings.MEMGRAPH_PORT,
-                        batch_size=settings.MEMGRAPH_BATCH_SIZE,
-                        num_workers=num_workers,
-                        generate_embeddings=True,
-                    )
-                    logger.info(
-                        f"Parallel update complete: {processed} files processed"
-                    )
-            else:
-                updater = GraphUpdater(
-                    ingestor=self.ingestor,
-                    repo_path=repo_path,
-                    parsers=self.parsers,
-                    queries=self.queries,
-                )
-                updater.run()
-
-            elapsed = time.time() - start_time
-            return (
-                f"Updated '{project_name}' at {self.project_root}\n"
-                f"  Files: {processed}/{total_files} processed\n"
-                f"  Workers: {num_workers}\n"
-                f"  Time: {elapsed:.1f}s"
+            updater = GraphUpdater(
+                ingestor=self.ingestor,
+                repo_path=Path(self.project_root),
+                parsers=self.parsers,
+                queries=self.queries,
             )
+            updater.run()
+
+            return cs.MCP_UPDATE_SUCCESS.format(path=self.project_root)
         except Exception as e:
             logger.error(lg.MCP_ERROR_UPDATING.format(error=e))
             return cs.MCP_UPDATE_ERROR.format(error=e)

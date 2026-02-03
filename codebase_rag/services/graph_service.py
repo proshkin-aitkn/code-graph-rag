@@ -137,44 +137,26 @@ class MemgraphIngestor:
                 "Use MemgraphIngestor as context manager: 'with MemgraphIngestor(...) as ingestor:'"
             )
             return
-
-        max_retries = 10
-        base_delay = 0.2
-
-        for attempt in range(max_retries):
-            cursor = None
-            try:
-                cursor = self.conn.cursor()
-                cursor.execute(wrap_with_unwind(query), BatchWrapper(batch=params_list))
-                return
-            except Exception as e:
-                error_msg = str(e).lower()
-                if "conflicting transaction" in error_msg and attempt < max_retries - 1:
-                    import random
-                    import time
-
-                    delay = base_delay * (2**attempt) + random.uniform(0, 0.5)
-                    logger.debug(
-                        f"Transaction conflict in batch, retrying in {delay:.2f}s "
-                        f"(attempt {attempt + 1}/{max_retries})"
-                    )
-                    time.sleep(delay)
-                    continue
-                if ERR_SUBSTR_ALREADY_EXISTS not in error_msg:
-                    logger.error(ls.MG_BATCH_ERROR.format(error=e))
-                    logger.error(ls.MG_CYPHER_QUERY.format(query=query))
-                    if len(params_list) > 10:
-                        logger.error(
-                            ls.MG_BATCH_PARAMS_TRUNCATED.format(
-                                count=len(params_list), params=params_list[:10]
-                            )
+        cursor = None
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(wrap_with_unwind(query), BatchWrapper(batch=params_list))
+        except Exception as e:
+            if ERR_SUBSTR_ALREADY_EXISTS not in str(e).lower():
+                logger.error(ls.MG_BATCH_ERROR.format(error=e))
+                logger.error(ls.MG_CYPHER_QUERY.format(query=query))
+                if len(params_list) > 10:
+                    logger.error(
+                        ls.MG_BATCH_PARAMS_TRUNCATED.format(
+                            count=len(params_list), params=params_list[:10]
                         )
-                    else:
-                        logger.error(ls.MG_CYPHER_PARAMS.format(params=params_list))
-                raise
-            finally:
-                if cursor:
-                    cursor.close()
+                    )
+                else:
+                    logger.error(ls.MG_CYPHER_PARAMS.format(params=params_list))
+            raise
+        finally:
+            if cursor:
+                cursor.close()
 
     def _execute_batch_with_return(
         self, query: str, params_list: Sequence[BatchParams]
@@ -187,36 +169,18 @@ class MemgraphIngestor:
                 "Use MemgraphIngestor as context manager: 'with MemgraphIngestor(...) as ingestor:'"
             )
             return []
-
-        max_retries = 10
-        base_delay = 0.2
-
-        for attempt in range(max_retries):
-            cursor = None
-            try:
-                cursor = self.conn.cursor()
-                cursor.execute(wrap_with_unwind(query), BatchWrapper(batch=params_list))
-                return self._cursor_to_results(cursor)
-            except Exception as e:
-                error_msg = str(e).lower()
-                if "conflicting transaction" in error_msg and attempt < max_retries - 1:
-                    import random
-                    import time
-
-                    delay = base_delay * (2**attempt) + random.uniform(0, 0.5)
-                    logger.debug(
-                        f"Transaction conflict, retrying in {delay:.2f}s "
-                        f"(attempt {attempt + 1}/{max_retries})"
-                    )
-                    time.sleep(delay)
-                    continue
-                logger.error(ls.MG_BATCH_ERROR.format(error=e))
-                logger.error(ls.MG_CYPHER_QUERY.format(query=query))
-                raise
-            finally:
-                if cursor:
-                    cursor.close()
-        return []
+        cursor = None
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(wrap_with_unwind(query), BatchWrapper(batch=params_list))
+            return self._cursor_to_results(cursor)
+        except Exception as e:
+            logger.error(ls.MG_BATCH_ERROR.format(error=e))
+            logger.error(ls.MG_CYPHER_QUERY.format(query=query))
+            raise
+        finally:
+            if cursor:
+                cursor.close()
 
     def clean_database(self) -> None:
         logger.info(ls.MG_CLEANING_DB)

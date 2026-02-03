@@ -90,12 +90,11 @@ if has_qdrant_client():
         Delete all vectors for a specific project.
 
         Args:
-            project_name: The project name prefix (e.g., 'sked_ai')
+            project_name: The project name prefix (e.g., 'my_project')
 
         Returns:
             Number of vectors deleted
         """
-
         try:
             client = get_qdrant_client()
 

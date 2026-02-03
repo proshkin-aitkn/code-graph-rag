@@ -1,8 +1,6 @@
 import sys
-import threading
 from collections import OrderedDict, defaultdict
 from collections.abc import Callable, ItemsView, KeysView
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from loguru import logger
@@ -259,8 +257,6 @@ class GraphUpdater:
         )
 
         self._markdown_processor: MarkdownDocumentProcessor | None = None
-        self._lock = threading.Lock()
-        self._max_workers = settings.PARALLEL_WORKERS
 
     def _is_dependency_file(self, file_name: str, filepath: Path) -> bool:
         return (
@@ -281,6 +277,23 @@ class GraphUpdater:
                 function_registry=self.function_registry,
             )
         return self._markdown_processor
+
+    def _process_markdown_file(self, filepath: Path) -> None:
+        lang_config = get_language_spec(filepath.suffix)
+        if (
+            not lang_config
+            or not isinstance(lang_config.language, cs.SupportedLanguage)
+            or lang_config.language not in self.parsers
+        ):
+            return
+
+        parser = self.parsers[lang_config.language]
+        try:
+            content = filepath.read_bytes()
+            tree = parser.parse(content)
+            self.markdown_processor.process_document(filepath, tree.root_node)
+        except Exception as e:
+            logger.warning(f"Failed to process markdown file {filepath}: {e}")
 
     def run(self) -> None:
         self.ingestor.ensure_node_batch(
@@ -337,111 +350,42 @@ class GraphUpdater:
                 self.simple_name_lookup[simple_name] = new_qn_set
                 logger.debug(ls.CLEANED_SIMPLE_NAME.format(name=simple_name))
 
-    def _read_file_content(self, filepath: Path) -> bytes | None:
-        try:
-            return filepath.read_bytes()
-        except Exception as e:
-            logger.warning(f"Failed to read {filepath}: {e}")
-            return None
-
-    def _process_single_file_with_content(
-        self, filepath: Path, content: bytes | None
-    ) -> None:
-        if content is None:
-            return
-
-        if self._is_markdown_file(filepath):
-            self._process_markdown_file_with_content(filepath, content)
-            self.factory.structure_processor.process_generic_file(
-                filepath, filepath.name
-            )
-            return
-
-        lang_config = get_language_spec(filepath.suffix)
-        if (
-            lang_config
-            and isinstance(lang_config.language, cs.SupportedLanguage)
-            and lang_config.language in self.parsers
-        ):
-            result = self.factory.definition_processor.process_file_with_content(
-                filepath,
-                content,
-                lang_config.language,
-                self.queries,
-                self.factory.structure_processor.structural_elements,
-            )
-            if result:
-                root_node, language = result
-                with self._lock:
-                    self.ast_cache[filepath] = (root_node, language)
-        elif self._is_dependency_file(filepath.name, filepath):
-            self.factory.definition_processor.process_dependencies(filepath)
-
-        self.factory.structure_processor.process_generic_file(filepath, filepath.name)
-
-    def _process_markdown_file_with_content(
-        self, filepath: Path, content: bytes
-    ) -> None:
-        lang_config = get_language_spec(filepath.suffix)
-        if (
-            not lang_config
-            or not isinstance(lang_config.language, cs.SupportedLanguage)
-            or lang_config.language not in self.parsers
-        ):
-            return
-
-        parser = self.parsers[lang_config.language]
-        try:
-            tree = parser.parse(content)
-            self.markdown_processor.process_document(filepath, tree.root_node)
-        except Exception as e:
-            logger.warning(f"Failed to process markdown file {filepath}: {e}")
-
     def _process_files(self) -> None:
-        files_to_process = [
-            filepath
-            for filepath in self.repo_path.rglob("*")
-            if filepath.is_file()
-            and not should_skip_path(
+        for filepath in self.repo_path.rglob("*"):
+            if filepath.is_file() and not should_skip_path(
                 filepath,
                 self.repo_path,
                 exclude_paths=self.exclude_paths,
                 unignore_paths=self.unignore_paths,
-            )
-        ]
+            ):
+                if self._is_markdown_file(filepath):
+                    self._process_markdown_file(filepath)
+                    self.factory.structure_processor.process_generic_file(
+                        filepath, filepath.name
+                    )
+                    continue
 
-        file_count = len(files_to_process)
-        if file_count == 0:
-            return
+                lang_config = get_language_spec(filepath.suffix)
+                if (
+                    lang_config
+                    and isinstance(lang_config.language, cs.SupportedLanguage)
+                    and lang_config.language in self.parsers
+                ):
+                    result = self.factory.definition_processor.process_file(
+                        filepath,
+                        lang_config.language,
+                        self.queries,
+                        self.factory.structure_processor.structural_elements,
+                    )
+                    if result:
+                        root_node, language = result
+                        self.ast_cache[filepath] = (root_node, language)
+                elif self._is_dependency_file(filepath.name, filepath):
+                    self.factory.definition_processor.process_dependencies(filepath)
 
-        if self._max_workers <= 1:
-            for filepath in files_to_process:
-                content = self._read_file_content(filepath)
-                self._process_single_file_with_content(filepath, content)
-            return
-
-        logger.info(f"Processing {file_count} files with {self._max_workers} workers")
-
-        file_contents: dict[Path, bytes | None] = {}
-        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-            future_to_path = {
-                executor.submit(self._read_file_content, fp): fp
-                for fp in files_to_process
-            }
-            for future in as_completed(future_to_path):
-                filepath = future_to_path[future]
-                try:
-                    file_contents[filepath] = future.result()
-                except Exception as e:
-                    logger.warning(f"Failed to read {filepath}: {e}")
-                    file_contents[filepath] = None
-
-        for filepath in files_to_process:
-            content = file_contents.get(filepath)
-            try:
-                self._process_single_file_with_content(filepath, content)
-            except Exception as e:
-                logger.warning(f"Failed to process {filepath}: {e}")
+                self.factory.structure_processor.process_generic_file(
+                    filepath, filepath.name
+                )
 
     def _process_function_calls(self) -> None:
         ast_cache_items = list(self.ast_cache.items())
