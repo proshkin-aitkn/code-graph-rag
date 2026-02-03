@@ -455,8 +455,56 @@ class GraphUpdater:
                     logger.debug(ls.NO_SOURCE_FOR.format(name=qualified_name))
             logger.info(ls.EMBEDDINGS_COMPLETE.format(count=embedded_count))
 
+            self._generate_section_embeddings(embed_code, store_embedding)
+
         except Exception as e:
             logger.warning(ls.EMBEDDING_GENERATION_FAILED.format(error=e))
+
+    def _generate_section_embeddings(
+        self,
+        embed_func: Callable[[str], list[float]],
+        store_func: Callable[[int, list[float], str], None],
+    ) -> None:
+        if not isinstance(self.ingestor, QueryProtocol):
+            return
+
+        results = self.ingestor.fetch_all(
+            cs.CYPHER_QUERY_SECTION_EMBEDDINGS,
+            {"project_name": self.project_name + "."},
+        )
+
+        if not results:
+            logger.debug("No sections found for embedding generation")
+            return
+
+        logger.info(f"Generating embeddings for {len(results)} documentation sections")
+
+        embedded_count = 0
+        for row in results:
+            node_id = row.get(cs.KEY_NODE_ID)
+            qualified_name = row.get(cs.KEY_QUALIFIED_NAME)
+            name = row.get(cs.KEY_NAME)
+            content = row.get("content")
+
+            if not isinstance(node_id, int) or not isinstance(qualified_name, str):
+                continue
+
+            name_str = str(name) if name else ""
+            content_str = str(content) if content else ""
+            text_to_embed = (
+                f"# {name_str}\n\n{content_str}" if content_str else name_str
+            )
+            if not text_to_embed:
+                continue
+
+            try:
+                embedding = embed_func(text_to_embed)
+                store_func(node_id, embedding, qualified_name)
+                embedded_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to embed section {qualified_name}: {e}")
+
+        logger.info(f"Generated {embedded_count} section embeddings")
 
     def _extract_source_code(
         self, qualified_name: str, file_path: str, start_line: int, end_line: int

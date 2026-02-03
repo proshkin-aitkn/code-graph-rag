@@ -447,6 +447,13 @@ RETURN id(n) AS node_id, n.qualified_name AS qualified_name,
        m.path AS path
 """
 
+CYPHER_QUERY_SECTION_EMBEDDINGS = """
+MATCH (s:Section)
+WHERE s.qualified_name STARTS WITH $project_name
+RETURN id(s) AS node_id, s.qualified_name AS qualified_name,
+       s.name AS name, s.content AS content
+"""
+
 
 class SupportedLanguage(StrEnum):
     PYTHON = "python"
