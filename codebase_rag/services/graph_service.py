@@ -129,7 +129,13 @@ class MemgraphIngestor:
                 raise
 
     def _execute_batch(self, query: str, params_list: Sequence[BatchParams]) -> None:
-        if not self.conn or not params_list:
+        if not params_list:
+            return
+        if not self.conn:
+            logger.warning(
+                "Attempted to execute batch without connection. "
+                "Use MemgraphIngestor as context manager: 'with MemgraphIngestor(...) as ingestor:'"
+            )
             return
         cursor = None
         try:
@@ -155,7 +161,13 @@ class MemgraphIngestor:
     def _execute_batch_with_return(
         self, query: str, params_list: Sequence[BatchParams]
     ) -> list[ResultRow]:
-        if not self.conn or not params_list:
+        if not params_list:
+            return []
+        if not self.conn:
+            logger.warning(
+                "Attempted to execute batch without connection. "
+                "Use MemgraphIngestor as context manager: 'with MemgraphIngestor(...) as ingestor:'"
+            )
             return []
         cursor = None
         try:
