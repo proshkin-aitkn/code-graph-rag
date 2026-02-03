@@ -57,6 +57,23 @@ class DefinitionProcessor(
         queries: dict[cs.SupportedLanguage, LanguageQueries],
         structural_elements: dict[Path, str | None],
     ) -> tuple[ASTNode, cs.SupportedLanguage] | None:
+        try:
+            source_bytes = file_path.read_bytes()
+        except Exception as e:
+            logger.error(ls.DEF_PARSE_FAILED.format(path=file_path, error=e))
+            return None
+        return self.process_file_with_content(
+            file_path, source_bytes, language, queries, structural_elements
+        )
+
+    def process_file_with_content(
+        self,
+        file_path: Path,
+        source_bytes: bytes,
+        language: cs.SupportedLanguage,
+        queries: dict[cs.SupportedLanguage, LanguageQueries],
+        structural_elements: dict[Path, str | None],
+    ) -> tuple[ASTNode, cs.SupportedLanguage] | None:
         if isinstance(file_path, str):
             file_path = Path(file_path)
         relative_path = file_path.relative_to(self.repo_path)
@@ -75,7 +92,6 @@ class DefinitionProcessor(
                 return None
 
             self._handler = get_handler(language)
-            source_bytes = file_path.read_bytes()
             lang_queries = queries[language]
             parser = lang_queries.get(cs.KEY_PARSER)
             if not parser:
