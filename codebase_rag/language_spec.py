@@ -73,7 +73,24 @@ def _generic_file_to_module(file_path: Path, repo_root: Path) -> list[str]:
         return []
 
 
-def _rust_get_name(node: Node) -> str | None:
+def _markdown_get_name(node: "Node") -> str | None:
+    if node.type in {cs.TS_MD_ATX_HEADING, cs.TS_MD_SETEXT_HEADING}:
+        for child in node.children:
+            if child.type in {cs.TS_MD_HEADING_CONTENT, cs.TS_MD_INLINE}:
+                if child.text:
+                    return child.text.decode(cs.ENCODING_UTF8).strip()
+    return None
+
+
+def _markdown_file_to_module(file_path: Path, repo_root: Path) -> list[str]:
+    try:
+        rel = file_path.relative_to(repo_root)
+        return list(rel.parts)
+    except ValueError:
+        return []
+
+
+def _rust_get_name(node: "Node") -> str | None:
     if node.type in cs.RS_TYPE_NODE_TYPES:
         name_node = node.child_by_field_name(cs.FIELD_NAME)
         if name_node and name_node.type == cs.TS_TYPE_IDENTIFIER and name_node.text:
@@ -189,6 +206,13 @@ PHP_FQN_SPEC = FQNSpec(
     file_to_module_parts=_generic_file_to_module,
 )
 
+MARKDOWN_FQN_SPEC = FQNSpec(
+    scope_node_types=frozenset(cs.FQN_MD_SCOPE_TYPES),
+    function_node_types=frozenset(cs.FQN_MD_SECTION_TYPES),
+    get_name=_markdown_get_name,
+    file_to_module_parts=_markdown_file_to_module,
+)
+
 LANGUAGE_FQN_SPECS: dict[cs.SupportedLanguage, FQNSpec] = {
     cs.SupportedLanguage.PYTHON: PYTHON_FQN_SPEC,
     cs.SupportedLanguage.JS: JS_FQN_SPEC,
@@ -201,6 +225,7 @@ LANGUAGE_FQN_SPECS: dict[cs.SupportedLanguage, FQNSpec] = {
     cs.SupportedLanguage.SCALA: SCALA_FQN_SPEC,
     cs.SupportedLanguage.CSHARP: CSHARP_FQN_SPEC,
     cs.SupportedLanguage.PHP: PHP_FQN_SPEC,
+    cs.SupportedLanguage.MARKDOWN: MARKDOWN_FQN_SPEC,
 }
 
 
@@ -407,6 +432,15 @@ LANGUAGE_SPECS: dict[cs.SupportedLanguage, LanguageSpec] = {
         module_node_types=cs.SPEC_LUA_MODULE_TYPES,
         call_node_types=cs.SPEC_LUA_CALL_TYPES,
         import_node_types=cs.SPEC_LUA_IMPORT_TYPES,
+    ),
+    cs.SupportedLanguage.MARKDOWN: LanguageSpec(
+        language=cs.SupportedLanguage.MARKDOWN,
+        file_extensions=cs.MD_EXTENSIONS,
+        function_node_types=(),
+        class_node_types=(),
+        module_node_types=cs.SPEC_MD_DOCUMENT_TYPES,
+        call_node_types=(),
+        import_node_types=(),
     ),
 }
 

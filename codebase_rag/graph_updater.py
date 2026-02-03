@@ -11,6 +11,7 @@ from . import logs as ls
 from .config import settings
 from .language_spec import LANGUAGE_FQN_SPECS, get_language_spec
 from .parsers.factory import ProcessorFactory
+from .parsers.md import MarkdownDocumentProcessor
 from .services import IngestorProtocol, QueryProtocol
 from .types_defs import (
     EmbeddingQueryResult,
@@ -255,11 +256,44 @@ class GraphUpdater:
             exclude_paths=self.exclude_paths,
         )
 
+        self._markdown_processor: MarkdownDocumentProcessor | None = None
+
     def _is_dependency_file(self, file_name: str, filepath: Path) -> bool:
         return (
             file_name.lower() in cs.DEPENDENCY_FILES
             or filepath.suffix.lower() == cs.CSPROJ_SUFFIX
         )
+
+    def _is_markdown_file(self, filepath: Path) -> bool:
+        return filepath.suffix.lower() in cs.MD_EXTENSIONS
+
+    @property
+    def markdown_processor(self) -> MarkdownDocumentProcessor:
+        if self._markdown_processor is None:
+            self._markdown_processor = MarkdownDocumentProcessor(
+                ingestor=self.ingestor,
+                repo_path=self.repo_path,
+                project_name=self.project_name,
+                function_registry=self.function_registry,
+            )
+        return self._markdown_processor
+
+    def _process_markdown_file(self, filepath: Path) -> None:
+        lang_config = get_language_spec(filepath.suffix)
+        if (
+            not lang_config
+            or not isinstance(lang_config.language, cs.SupportedLanguage)
+            or lang_config.language not in self.parsers
+        ):
+            return
+
+        parser = self.parsers[lang_config.language]
+        try:
+            content = filepath.read_bytes()
+            tree = parser.parse(content)
+            self.markdown_processor.process_document(filepath, tree.root_node)
+        except Exception as e:
+            logger.warning(f"Failed to process markdown file {filepath}: {e}")
 
     def run(self) -> None:
         self.ingestor.ensure_node_batch(
@@ -324,6 +358,10 @@ class GraphUpdater:
                 exclude_paths=self.exclude_paths,
                 unignore_paths=self.unignore_paths,
             ):
+                if self._is_markdown_file(filepath):
+                    self._process_markdown_file(filepath)
+                    continue
+
                 lang_config = get_language_spec(filepath.suffix)
                 if (
                     lang_config

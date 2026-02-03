@@ -47,6 +47,7 @@ An accurate Retrieval-Augmented Generation (RAG) system that analyzes multi-lang
 | Java | Fully Supported | .java | ✓ | ✓ | ✓ | - | Generics, annotations, modern features (records/sealed classes), concurrency, reflection |
 | JavaScript | Fully Supported | .js, .jsx | ✓ | ✓ | ✓ | - | ES6 modules, CommonJS, prototype methods, object methods, arrow functions |
 | Lua | Fully Supported | .lua | ✓ | - | ✓ | - | Local/global functions, metatables, closures, coroutines |
+| Markdown | Fully Supported | .md, .markdown | - | - | ✓ | - | Headings, code blocks, links, document structure |
 | Python | Fully Supported | .py | ✓ | ✓ | ✓ | ✓ | Type inference, decorators, nested functions |
 | Rust | Fully Supported | .rs | ✓ | ✓ | ✓ | ✓ | impl blocks, associated functions |
 | TypeScript | Fully Supported | .ts, .tsx | ✓ | ✓ | ✓ | - | Interfaces, type aliases, enums, namespaces, ES6/CommonJS modules |
@@ -624,6 +625,9 @@ The knowledge graph uses the following node types and relationships:
 | ModuleInterface | `{qualified_name: string, name: string, path: string}` |
 | ModuleImplementation | `{qualified_name: string, name: string, path: string, implements_module: string}` |
 | ExternalPackage | `{name: string, version_spec: string}` |
+| Document | `{path: string, name: string, title: string}` |
+| Section | `{qualified_name: string, name: string, level: int, content: string, start_line: int, end_line: int}` |
+| CodeExample | `{qualified_name: string, language: string, content: string, start_line: int, end_line: int}` |
 <!-- /SECTION:node_schemas -->
 
 ### Language-Specific Mappings
@@ -663,6 +667,10 @@ The knowledge graph uses the following node types and relationships:
 | ModuleImplementation | IMPLEMENTS | ModuleInterface |
 | Project | DEPENDS_ON_EXTERNAL | ExternalPackage |
 | Function, Method | CALLS | Function, Method |
+| Document, Section | CONTAINS_SECTION | Section |
+| Section | CONTAINS_CODE_EXAMPLE | CodeExample |
+| CodeExample | DOCUMENTS | Function, Method, Class |
+| Section | REFERENCES | Function, Method, Class, Module |
 <!-- /SECTION:relationship_schemas -->
 
 ## 🔧 Configuration

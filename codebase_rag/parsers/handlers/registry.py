@@ -8,6 +8,7 @@ from .cpp import CppHandler
 from .java import JavaHandler
 from .js_ts import JsTsHandler
 from .lua import LuaHandler
+from .markdown import MarkdownHandler
 from .protocol import LanguageHandler
 from .python import PythonHandler
 from .rust import RustHandler
@@ -20,6 +21,7 @@ _HANDLERS: dict[SupportedLanguage, type[BaseLanguageHandler]] = {
     SupportedLanguage.RUST: RustHandler,
     SupportedLanguage.JAVA: JavaHandler,
     SupportedLanguage.LUA: LuaHandler,
+    SupportedLanguage.MARKDOWN: MarkdownHandler,
 }
 
 _DEFAULT_HANDLER = BaseLanguageHandler

@@ -472,6 +472,15 @@ NODE_SCHEMAS: tuple[NodeSchema, ...] = (
         "{qualified_name: string, name: string, path: string, implements_module: string}",
     ),
     NodeSchema(NodeLabel.EXTERNAL_PACKAGE, "{name: string, version_spec: string}"),
+    NodeSchema(NodeLabel.DOCUMENT, "{path: string, name: string, title: string}"),
+    NodeSchema(
+        NodeLabel.SECTION,
+        "{qualified_name: string, name: string, level: int, content: string, start_line: int, end_line: int}",
+    ),
+    NodeSchema(
+        NodeLabel.CODE_EXAMPLE,
+        "{qualified_name: string, language: string, content: string, start_line: int, end_line: int}",
+    ),
 )
 
 
@@ -555,5 +564,25 @@ RELATIONSHIP_SCHEMAS: tuple[RelationshipSchema, ...] = (
         (NodeLabel.FUNCTION, NodeLabel.METHOD),
         RelationshipType.CALLS,
         (NodeLabel.FUNCTION, NodeLabel.METHOD),
+    ),
+    RelationshipSchema(
+        (NodeLabel.DOCUMENT, NodeLabel.SECTION),
+        RelationshipType.CONTAINS_SECTION,
+        (NodeLabel.SECTION,),
+    ),
+    RelationshipSchema(
+        (NodeLabel.SECTION,),
+        RelationshipType.CONTAINS_CODE_EXAMPLE,
+        (NodeLabel.CODE_EXAMPLE,),
+    ),
+    RelationshipSchema(
+        (NodeLabel.CODE_EXAMPLE,),
+        RelationshipType.DOCUMENTS,
+        (NodeLabel.FUNCTION, NodeLabel.METHOD, NodeLabel.CLASS),
+    ),
+    RelationshipSchema(
+        (NodeLabel.SECTION,),
+        RelationshipType.REFERENCES,
+        (NodeLabel.FUNCTION, NodeLabel.METHOD, NodeLabel.CLASS, NodeLabel.MODULE),
     ),
 )

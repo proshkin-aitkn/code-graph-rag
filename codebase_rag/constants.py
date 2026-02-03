@@ -117,6 +117,11 @@ CS_EXTENSIONS = (EXT_CS,)
 PHP_EXTENSIONS = (EXT_PHP,)
 LUA_EXTENSIONS = (EXT_LUA,)
 
+# (H) Markdown file extensions
+EXT_MD = ".md"
+EXT_MARKDOWN = ".markdown"
+MD_EXTENSIONS = (EXT_MD, EXT_MARKDOWN)
+
 # (H) Package indicator files
 PKG_INIT_PY = "__init__.py"
 PKG_CARGO_TOML = "Cargo.toml"
@@ -340,6 +345,9 @@ class NodeLabel(StrEnum):
     MODULE_INTERFACE = "ModuleInterface"
     MODULE_IMPLEMENTATION = "ModuleImplementation"
     EXTERNAL_PACKAGE = "ExternalPackage"
+    DOCUMENT = "Document"
+    SECTION = "Section"
+    CODE_EXAMPLE = "CodeExample"
 
 
 _NODE_LABEL_UNIQUE_KEYS: dict[NodeLabel, UniqueKeyType] = {
@@ -358,6 +366,9 @@ _NODE_LABEL_UNIQUE_KEYS: dict[NodeLabel, UniqueKeyType] = {
     NodeLabel.MODULE_INTERFACE: UniqueKeyType.QUALIFIED_NAME,
     NodeLabel.MODULE_IMPLEMENTATION: UniqueKeyType.QUALIFIED_NAME,
     NodeLabel.EXTERNAL_PACKAGE: UniqueKeyType.NAME,
+    NodeLabel.DOCUMENT: UniqueKeyType.PATH,
+    NodeLabel.SECTION: UniqueKeyType.QUALIFIED_NAME,
+    NodeLabel.CODE_EXAMPLE: UniqueKeyType.QUALIFIED_NAME,
 }
 
 _missing_keys = set(NodeLabel) - set(_NODE_LABEL_UNIQUE_KEYS.keys())
@@ -384,6 +395,10 @@ class RelationshipType(StrEnum):
     OVERRIDES = "OVERRIDES"
     CALLS = "CALLS"
     DEPENDS_ON_EXTERNAL = "DEPENDS_ON_EXTERNAL"
+    CONTAINS_SECTION = "CONTAINS_SECTION"
+    CONTAINS_CODE_EXAMPLE = "CONTAINS_CODE_EXAMPLE"
+    DOCUMENTS = "DOCUMENTS"
+    REFERENCES = "REFERENCES"
 
 
 NODE_PROJECT = NodeLabel.PROJECT
@@ -445,6 +460,7 @@ class SupportedLanguage(StrEnum):
     CSHARP = "c-sharp"
     PHP = "php"
     LUA = "lua"
+    MARKDOWN = "markdown"
 
 
 class LanguageStatus(StrEnum):
@@ -513,6 +529,11 @@ LANGUAGE_METADATA: dict[SupportedLanguage, LanguageMetadata] = {
         LanguageStatus.DEV,
         "Classes, functions, namespaces",
         "PHP",
+    ),
+    SupportedLanguage.MARKDOWN: LanguageMetadata(
+        LanguageStatus.FULL,
+        "Headings, code blocks, links, document structure",
+        "Markdown",
     ),
 }
 
@@ -741,6 +762,7 @@ class TreeSitterModule(StrEnum):
     JAVA = "tree_sitter_java"
     CPP = "tree_sitter_cpp"
     LUA = "tree_sitter_lua"
+    MARKDOWN = "tree_sitter_markdown"
 
 
 # (H) Query dict keys
@@ -1717,6 +1739,40 @@ TS_LUA_FUNCTION_DECLARATION = "function_declaration"
 TS_LUA_FUNCTION_DEFINITION = "function_definition"
 TS_LUA_FUNCTION_CALL = "function_call"
 
+# (H) Tree-sitter Markdown node types
+TS_MD_DOCUMENT = "document"
+TS_MD_SECTION = "section"
+TS_MD_ATX_HEADING = "atx_heading"
+TS_MD_SETEXT_HEADING = "setext_heading"
+TS_MD_HEADING_CONTENT = "heading_content"
+TS_MD_ATX_H1_MARKER = "atx_h1_marker"
+TS_MD_ATX_H2_MARKER = "atx_h2_marker"
+TS_MD_ATX_H3_MARKER = "atx_h3_marker"
+TS_MD_ATX_H4_MARKER = "atx_h4_marker"
+TS_MD_ATX_H5_MARKER = "atx_h5_marker"
+TS_MD_ATX_H6_MARKER = "atx_h6_marker"
+TS_MD_FENCED_CODE_BLOCK = "fenced_code_block"
+TS_MD_INDENTED_CODE_BLOCK = "indented_code_block"
+TS_MD_CODE_FENCE_CONTENT = "code_fence_content"
+TS_MD_INFO_STRING = "info_string"
+TS_MD_LANGUAGE = "language"
+TS_MD_PARAGRAPH = "paragraph"
+TS_MD_INLINE = "inline"
+TS_MD_CODE_SPAN = "code_span"
+TS_MD_LINK = "link"
+TS_MD_LINK_DESTINATION = "link_destination"
+TS_MD_LINK_TEXT = "link_text"
+
+# (H) Markdown heading level markers
+MD_HEADING_MARKERS = (
+    TS_MD_ATX_H1_MARKER,
+    TS_MD_ATX_H2_MARKER,
+    TS_MD_ATX_H3_MARKER,
+    TS_MD_ATX_H4_MARKER,
+    TS_MD_ATX_H5_MARKER,
+    TS_MD_ATX_H6_MARKER,
+)
+
 # (H) Tree-sitter C++ node types for language_spec
 TS_CPP_FUNCTION_DEFINITION = "function_definition"
 TS_CPP_DECLARATION = "declaration"
@@ -2595,6 +2651,10 @@ FQN_PHP_FUNCTION_TYPES = (
     TS_PHP_FUNCTION_STATIC_DECLARATION,
 )
 
+# (H) FQN resolution types for Markdown
+FQN_MD_SCOPE_TYPES = (TS_MD_DOCUMENT,)
+FQN_MD_SECTION_TYPES = (TS_MD_ATX_HEADING, TS_MD_SETEXT_HEADING)
+
 # (H) LANGUAGE_SPECS node type tuples for Python
 SPEC_PY_FUNCTION_TYPES = (TS_PY_FUNCTION_DEFINITION,)
 SPEC_PY_CLASS_TYPES = (TS_PY_CLASS_DEFINITION,)
@@ -2773,6 +2833,11 @@ SPEC_LUA_CLASS_TYPES: tuple[str, ...] = ()
 SPEC_LUA_MODULE_TYPES = (TS_LUA_CHUNK,)
 SPEC_LUA_CALL_TYPES = (TS_LUA_FUNCTION_CALL,)
 SPEC_LUA_IMPORT_TYPES = (TS_LUA_FUNCTION_CALL,)
+
+# (H) LANGUAGE_SPECS node type tuples for Markdown
+SPEC_MD_DOCUMENT_TYPES = (TS_MD_DOCUMENT,)
+SPEC_MD_SECTION_TYPES = (TS_MD_SECTION, TS_MD_ATX_HEADING, TS_MD_SETEXT_HEADING)
+SPEC_MD_CODE_BLOCK_TYPES = (TS_MD_FENCED_CODE_BLOCK, TS_MD_INDENTED_CODE_BLOCK)
 
 HEALTH_CHECK_DOCKER_RUNNING = "Docker daemon is running"
 HEALTH_CHECK_DOCKER_NOT_RUNNING = "Docker daemon is not running"
