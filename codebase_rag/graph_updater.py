@@ -352,6 +352,9 @@ class GraphUpdater:
 
         if self._is_markdown_file(filepath):
             self._process_markdown_file_with_content(filepath, content)
+            self.factory.structure_processor.process_generic_file(
+                filepath, filepath.name
+            )
             return
 
         lang_config = get_language_spec(filepath.suffix)

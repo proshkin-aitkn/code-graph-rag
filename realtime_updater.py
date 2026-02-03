@@ -42,7 +42,11 @@ class CodeChangeEventHandler(FileSystemEventHandler):
         path = Path(path_str)
         if any(path.name.endswith(suffix) for suffix in self.ignore_suffixes):
             return False
-        return all(part not in self.ignore_patterns for part in path.parts)
+        try:
+            relative_path = path.relative_to(self.updater.repo_path)
+            return all(part not in self.ignore_patterns for part in relative_path.parts)
+        except ValueError:
+            return all(part not in self.ignore_patterns for part in path.parts)
 
     def dispatch(self, event: FileSystemEvent) -> None:
         # (H) ┌─────────────────────────────────────────────────────────────────────┐

@@ -107,8 +107,8 @@ def test_unsupported_file_types_are_ignored(
     event_handler: CodeChangeEventHandler, mock_updater: MagicMock, temp_repo: Path
 ) -> None:
     """Test that changing an unsupported file type is ignored after deletion query."""
-    unsupported_file = temp_repo / "document.md"
-    unsupported_file.write_text(encoding="utf-8", data="# Markdown file")
+    unsupported_file = temp_repo / "document.txt"
+    unsupported_file.write_text("Plain text file")
     event = FileModifiedEvent(str(unsupported_file))
 
     event_handler.dispatch(event)

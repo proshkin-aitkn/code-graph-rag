@@ -7,9 +7,25 @@ import pytest
 from loguru import logger
 from pydantic_ai import Tool
 
+from codebase_rag.config import settings
 from codebase_rag.services.llm import create_rag_orchestrator
 
-pytestmark = [pytest.mark.asyncio(loop_scope="module"), pytest.mark.integration]
+
+def _is_using_local_wrapper() -> bool:
+    endpoint = settings.active_orchestrator_config.endpoint
+    if endpoint and "localhost" in endpoint:
+        return True
+    return False
+
+
+pytestmark = [
+    pytest.mark.asyncio(loop_scope="module"),
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        _is_using_local_wrapper(),
+        reason="Tool calling tests require real LLM API, not local wrapper",
+    ),
+]
 
 if TYPE_CHECKING:
     from pydantic_ai import Agent
