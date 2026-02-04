@@ -6,6 +6,7 @@ from loguru import logger
 from codebase_rag import constants as cs
 from codebase_rag import logs as lg
 from codebase_rag import tool_errors as te
+from codebase_rag.config import load_cgrignore_patterns
 from codebase_rag.graph_updater import GraphUpdater
 from codebase_rag.models import ToolMetadata
 from codebase_rag.parser_loader import load_parsers
@@ -337,16 +338,23 @@ class MCPToolsRegistry:
 
     async def index_repository(self) -> str:
         logger.info(lg.MCP_INDEXING_REPO.format(path=self.project_root))
-        project_name = Path(self.project_root).resolve().name
+        repo_path = Path(self.project_root)
+        project_name = repo_path.resolve().name
         try:
             logger.info(lg.MCP_CLEARING_PROJECT.format(project_name=project_name))
             self.ingestor.delete_project(project_name)
 
+            cgrignore = load_cgrignore_patterns(repo_path)
+            exclude_paths = cgrignore.exclude or None
+            unignore_paths = cgrignore.unignore or None
+
             updater = GraphUpdater(
                 ingestor=self.ingestor,
-                repo_path=Path(self.project_root),
+                repo_path=repo_path,
                 parsers=self.parsers,
                 queries=self.queries,
+                unignore_paths=unignore_paths,
+                exclude_paths=exclude_paths,
             )
             updater.run()
 
@@ -360,13 +368,20 @@ class MCPToolsRegistry:
     async def update_repository(self) -> str:
         """Update repository without clearing existing data."""
         logger.info(lg.MCP_UPDATING_REPO.format(path=self.project_root))
+        repo_path = Path(self.project_root)
 
         try:
+            cgrignore = load_cgrignore_patterns(repo_path)
+            exclude_paths = cgrignore.exclude or None
+            unignore_paths = cgrignore.unignore or None
+
             updater = GraphUpdater(
                 ingestor=self.ingestor,
-                repo_path=Path(self.project_root),
+                repo_path=repo_path,
                 parsers=self.parsers,
                 queries=self.queries,
+                unignore_paths=unignore_paths,
+                exclude_paths=exclude_paths,
             )
             updater.run()
 

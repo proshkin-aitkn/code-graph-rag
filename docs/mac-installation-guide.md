@@ -34,7 +34,7 @@ Open Docker Desktop from Applications and wait for it to start.
 
 ```bash
 cd ~/projects  # or your preferred directory
-git clone https://github.com/vitali87/code-graph-rag.git
+git clone https://github.com/proshkin-aitkn/code-graph-rag
 cd code-graph-rag
 ```
 
