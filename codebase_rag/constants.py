@@ -880,6 +880,7 @@ PAYLOAD_QUALIFIED_NAME = "qualified_name"
 class EventType(StrEnum):
     MODIFIED = "modified"
     CREATED = "created"
+    DELETED = "deleted"
 
 
 CYPHER_DELETE_MODULE = "MATCH (m:Module {path: $path})-[*0..]->(c) DETACH DELETE m, c"

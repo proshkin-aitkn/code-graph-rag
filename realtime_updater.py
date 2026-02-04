@@ -62,6 +62,14 @@ class CodeChangeEventHandler(FileSystemEventHandler):
         # (H) │         Fixes "island" problem - changes reflect in all relations  │
         # (H) │ Step 5: Flush all collected changes to the database                │
         # (H) └─────────────────────────────────────────────────────────────────────┘
+
+        if event.event_type not in (
+            EventType.MODIFIED,
+            EventType.CREATED,
+            EventType.DELETED,
+        ):
+            return
+
         src_path = event.src_path
         if isinstance(src_path, bytes):
             src_path = src_path.decode()
